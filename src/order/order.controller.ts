@@ -24,6 +24,7 @@ import {
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { OrderStatus } from '@prisma/client';
@@ -33,6 +34,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { OrderService } from './order.service';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 /**
  * HTTP API for orders and nested line items.
@@ -110,6 +112,8 @@ export class OrderController {
   }
 
   @Patch(':id/status')
+  @UseGuards(AdminGuard)
+  @ApiForbiddenResponse({ description: 'Requires ADMIN role' })
   @ApiOperation({ summary: 'Update order status' })
   @ApiParam({
     name: 'id',
@@ -127,6 +131,7 @@ export class OrderController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateStatusDto: UpdateStatusDto,
   ) {
+
     return this.orderService.updateStatus(id, updateStatusDto.status);
   }
 

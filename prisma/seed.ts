@@ -21,7 +21,7 @@ function readBcryptSaltRoundsForSeed(): number {
 }
 
 /** Dev-only password documented in README; change for real deployments. */
-const SEED_ADMIN_PASSWORD = 'admin-secret-change-me';
+const SEED_ADMIN_PASSWORD = 'Admin@123';
 
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL?.trim();

@@ -30,7 +30,7 @@ Backend API for a product catalog, JWT authentication, and orders with line item
 - **Authentication** — Sign-up and login with bcrypt-hashed passwords; JWT access tokens.
 - **Users** — Roles `USER` (default) and `ADMIN` (seeded for local admin workflows).
 - **Products** — SKU, optional description, soft-disable via `isActive`; **admin-only** create, update, delete; authenticated list (paginated) and detail.
-- **Orders** — Create orders referencing **active** products by numeric `productId`; list with optional status filter and pagination; status updates and cancel rules.
+- **Orders** — Create orders referencing **active** products by numeric `productId`; list with optional status filter and pagination; **admin-only** status updates (`PATCH /orders/:id/status`); authenticated cancel when the order is `PENDING` (`PATCH /orders/:id/cancel`).
 - **Background job** — Cron promotes orders from `PENDING` to `PROCESSING` every five minutes.
 - **Rate limiting** — In-memory per-IP throttling; stricter limits on auth routes; configurable via environment variables.
 
@@ -148,7 +148,8 @@ Use **Authentication** (`POST /auth/sign-up`, `POST /auth/login`) to obtain `acc
 | `GET /` | Public | Health / hello (plain text); excluded from rate limiting |
 | `POST /auth/sign-up`, `POST /auth/login` | Public | Register and obtain JWT; stricter rate limits |
 | `/products` | JWT | List (paginated, active products) and get by id; **POST/PATCH/DELETE** require **ADMIN** |
-| `/orders` | JWT | Order operations; line items use numeric **`productId`** from the products API |
+| `/orders` | JWT | List, get, create; cancel when `PENDING`; line items use numeric **`productId`** from the products API |
+| `PATCH /orders/:id/status` | JWT **+ ADMIN** | Update order status (non-admins receive 403) |
 
 **Pagination:** List endpoints return `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }` where applicable.
 
@@ -159,6 +160,7 @@ Use **Authentication** (`POST /auth/sign-up`, `POST /auth/login`) to obtain `acc
 3. Click **Authorize** and paste `Bearer <token>` (or the token alone, depending on UI).
 4. `GET /products?page=1&limit=20` and note numeric `id` values.
 5. `POST /orders` with body `{ "items": [ { "productId": <id>, "quantity": 1 } ] }`.
+6. To try **status updates**, sign in as the seeded admin (`admin@example.com`) and call `PATCH /orders/:id/status` with a valid `OrderStatus` body; a non-admin JWT returns 403.
 
 ## Project structure
 
@@ -183,7 +185,7 @@ test/                      # Jest e2e config and specs
 
 ## Architecture
 
-The app uses feature modules (`auth`, `user`, `product`, `order`) plus `prisma` and shared helpers. [`main.ts`](src/main.ts) registers a global `ValidationPipe` (whitelist, forbid unknown properties, transform). A global `ThrottlerGuard` applies default limits; [`AppController`](src/app.controller.ts) uses `@SkipThrottle()` for `GET /`. Protected routes use `JwtAuthGuard`; product mutations add `AdminGuard`. `OrderStatusSchedulerService` runs on a cron schedule and moves `PENDING` orders to `PROCESSING` via `updateMany`.
+The app uses feature modules (`auth`, `user`, `product`, `order`) plus `prisma` and shared helpers. [`main.ts`](src/main.ts) registers a global `ValidationPipe` (whitelist, forbid unknown properties, transform). A global `ThrottlerGuard` applies default limits; [`AppController`](src/app.controller.ts) uses `@SkipThrottle()` for `GET /`. Protected routes use `JwtAuthGuard`; product mutations and `PATCH /orders/:id/status` add `AdminGuard`. `OrderStatusSchedulerService` runs on a cron schedule and moves `PENDING` orders to `PROCESSING` via `updateMany`.
 
 Rate limiting is in-memory per process; for multiple instances behind a load balancer, consider a shared store (e.g. Redis) in production.
 
