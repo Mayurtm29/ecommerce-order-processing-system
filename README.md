@@ -207,9 +207,7 @@ stateDiagram-v2
   PENDING --> PROCESSING
   PROCESSING --> SHIPPED
   SHIPPED --> DELIVERED
-  PENDING --> CANCELLED
-  DELIVERED --> [*]
-  CANCELLED --> [*]
+  PENDING --> CANCELLED 
 ```
 
 | Mechanism | Who | Transition | Conditions / notes |
