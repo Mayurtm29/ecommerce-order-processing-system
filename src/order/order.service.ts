@@ -1,15 +1,18 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, Prisma, UserRole } from '@prisma/client';
+import type { JwtValidatedUser } from '../auth/jwt.strategy';
 import { buildPaginationMeta } from '../common/build-pagination-meta';
 import type { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
 import { resolvePaginationParams } from '../common/resolve-pagination-params';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { ListOrdersQueryDto } from './dto/list-orders-query.dto';
+import { assertValidAdminStatusTransition } from './order-status-transitions';
 
 const orderIncludeWithItemsAndProduct = {
   items: { include: { product: true } },
@@ -26,12 +29,18 @@ type OrderWithItems = Prisma.OrderGetPayload<{
 export class OrderService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: ListOrdersQueryDto): Promise<{
+  async findAll(
+    query: ListOrdersQueryDto,
+    actor: JwtValidatedUser,
+  ): Promise<{
     data: OrderWithItems[];
     meta: PaginationMetaDto;
   }> {
     const { page, limit, skip } = resolvePaginationParams(query);
-    const where = query.status !== undefined ? { status: query.status } : {};
+    const where: Prisma.OrderWhereInput = {
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(actor.role !== UserRole.ADMIN ? { userId: actor.userId } : {}),
+    };
     const [total, data] = await Promise.all([
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
@@ -48,9 +57,12 @@ export class OrderService {
     };
   }
 
-  async findOne(id: number): Promise<OrderWithItems> {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
+  async findOne(id: number, actor: JwtValidatedUser): Promise<OrderWithItems> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id,
+        ...(actor.role !== UserRole.ADMIN ? { userId: actor.userId } : {}),
+      },
       include: orderIncludeWithItemsAndProduct,
     });
     if (order === null) {
@@ -59,10 +71,14 @@ export class OrderService {
     return order;
   }
 
-  async create(input: CreateOrderDto): Promise<OrderWithItems> {
+  async create(
+    input: CreateOrderDto,
+    userId: number,
+  ): Promise<OrderWithItems> {
     await this.assertAllItemsReferenceActiveProducts(input);
     const data: Prisma.OrderCreateInput = {
       status: OrderStatus.PENDING,
+      user: { connect: { id: userId } },
       items: {
         create: input.items.map((item) => ({
           productId: item.productId,
@@ -83,11 +99,7 @@ export class OrderService {
     if (existing === null) {
       throw new NotFoundException('Order not found');
     }
-    if (existing.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException(
-        'Cannot change status of a cancelled order',
-      );
-    }
+    assertValidAdminStatusTransition(existing.status, status);
     return this.prisma.order.update({
       where: { id },
       data: { status },
@@ -95,12 +107,21 @@ export class OrderService {
     });
   }
 
-  async cancelOrder(id: number): Promise<OrderWithItems> {
+  async cancelOrder(
+    id: number,
+    actor: JwtValidatedUser,
+  ): Promise<OrderWithItems> {
     const existing = await this.prisma.order.findUnique({
       where: { id },
     });
     if (existing === null) {
       throw new NotFoundException('Order not found');
+    }
+    if (
+      actor.role !== UserRole.ADMIN &&
+      existing.userId !== actor.userId
+    ) {
+      throw new ForbiddenException('You can only cancel your own orders');
     }
     if (existing.status !== OrderStatus.PENDING) {
       throw new BadRequestException(

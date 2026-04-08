@@ -52,7 +52,8 @@ export class AuthService {
    * Verifies credentials and returns a signed JWT access token.
    */
   async login(dto: LoginDto): Promise<{ access_token: string }> {
-    const user = await this.userService.findByEmail(dto.email);
+    const email = this.userService.normalizeEmail(dto.email);
+    const user = await this.userService.findByEmail(email);
     if (user === null) {
       throw new UnauthorizedException('Invalid email or password');
     }

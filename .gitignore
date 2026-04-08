@@ -2,11 +2,14 @@ node_modules
 dist
 coverage
 
-# Keep environment variables out of version control
-# .env
-# .env.local
+# Environment variables (copy from .env.example)
+.env
+.env.local
+.env.*.local
 
-# dev.db
+# Local SQLite database
+dev.db
+dev.db-journal
 
 # IDE / tooling
 .cursor
