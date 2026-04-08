@@ -305,44 +305,47 @@ prisma/
 
 ## Architecture
 
-The app uses feature modules (`auth`, `user`, `product`, `order`) plus `prisma` and shared helpers. [`main.ts`](src/main.ts) registers a global `ValidationPipe` (whitelist, forbid unknown properties, transform). A global `ThrottlerGuard` applies default limits; [`AppController`](src/app.controller.ts) uses `@SkipThrottle()` for `GET /`. Protected routes use `JwtAuthGuard`; product mutations and `PATCH /orders/:id/status` add `AdminGuard`. Order list/get are scoped by `userId` for non-admins. Admin status updates are validated in [`order-status-transitions.ts`](src/order/order-status-transitions.ts) (strict linear transitions). `OrderStatusSchedulerService` runs on a cron schedule and moves `PENDING` orders to `PROCESSING` via `updateMany`.
+- **Modules** — NestJS feature modules (`auth`, `user`, `product`, `order`) plus **`PrismaModule`** for data access. [`main.ts`](src/main.ts) bootstraps the app and Swagger.
+- **Cross-cutting** — Global `ValidationPipe` (whitelist and transform), global rate limiting (`ThrottlerGuard`; [`AppController`](src/app.controller.ts) skips throttle on `GET /`), JWT on protected routes, and `AdminGuard` on admin-only endpoints.
+- **Orders** — A scheduled job updates order status; allowed manual transitions are enforced in [`order-status-transitions.ts`](src/order/order-status-transitions.ts).
 
-Rate limiting is in-memory per process; for multiple instances behind a load balancer, consider a shared store (e.g. Redis) in production.
+Throttling is in-memory per process; behind multiple instances, use a shared limiter store (e.g. Redis) in production.
 
 ```mermaid
-flowchart LR
-  AppModule --> AuthModule
-  AppModule --> UserModule
-  AppModule --> ProductModule
-  AppModule --> OrderModule
-  AppModule --> PrismaModule
-  AuthModule --> UserModule
-  ProductModule --> PrismaModule
-  OrderModule --> PrismaModule
+flowchart TB
+  httpLayer[HTTP and Swagger]
+  nestModules[Nest modules: auth, user, product, order]
+  prismaLayer[Prisma]
+  sqliteDb[(SQLite)]
+  httpLayer --> nestModules --> prismaLayer --> sqliteDb
 ```
 
 ## Scripts
 
+Defined in [`package.json`](package.json) (same order as below).
+
 | Command | Purpose |
 |---------|---------|
-| `npm run start` | Start once |
-| `npm run start:dev` | Start with watch |
-| `npm run start:debug` | Start with debug + watch |
-| `npm run build` | Compile to `dist/` |
-| `npm run start:prod` | Run compiled app (`node dist/src/main.js`) |
-| `npm run prisma:migrate` | Prisma migrate (development) |
-| `npm run prisma:generate` | Generate Prisma Client |
-| `npm run db:seed` | Run seed |
-| `npm run test` | Unit tests |
-| `npm run test:watch` | Unit tests in watch mode |
-| `npm run test:cov` | Unit tests with coverage |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier (`src/`) |
+| `npm install` | Runs **`postinstall`** → `prisma generate` |
+| `npm run build` | `nest build` — compile to `dist/` |
+| `npm run format` | Prettier write — `src/**/*.ts` |
+| `npm run start` | `nest start` — run once |
+| `npm run start:dev` | `nest start --watch` |
+| `npm run start:debug` | `nest start --debug --watch` |
+| `npm run start:prod` | `node dist/src/main.js` (run after `build`) |
+| `npm run lint` | ESLint on `src/**/*.ts` with `--fix` |
+| `npm run test` | Jest unit tests |
+| `npm run test:watch` | Jest in watch mode |
+| `npm run test:cov` | Jest with coverage |
+| `npm run prisma:generate` | `prisma generate` (also via `postinstall`) |
+| `npm run prisma:migrate` | `prisma migrate dev` |
+| `npm run db:seed` | `prisma db seed` |
 
 ## Testing
 
 ```bash
 npm run test
+npm run test:watch
 npm run test:cov
 ```
 
