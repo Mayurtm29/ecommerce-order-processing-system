@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, UserRole } from '@prisma/client';
-import type { JwtValidatedUser } from '../auth/jwt.strategy';
-import { PrismaService } from '../prisma/prisma.service';
+import type { JwtValidatedUser } from '../../../auth/jwt.strategy';
+import { PrismaService } from '../../../prisma/services/prisma.service';
 import { OrderService } from './order.service';
 
 const mockAdmin: JwtValidatedUser = {

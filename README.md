@@ -97,7 +97,7 @@ Open [http://localhost:3000/api](http://localhost:3000/api) for Swagger.
 
 Copy [`.env.example`](.env.example) to `.env` and adjust values.
 
-The Prisma CLI reads `DATABASE_URL` from [`prisma.config.ts`](prisma.config.ts). The Nest application uses the same variable in [`src/prisma/prisma.service.ts`](src/prisma/prisma.service.ts).
+The Prisma CLI reads `DATABASE_URL` from [`prisma.config.ts`](prisma.config.ts). The Nest application uses the same variable in [`src/prisma/services/prisma.service.ts`](src/prisma/services/prisma.service.ts).
 
 ### Required
 
@@ -132,7 +132,7 @@ The Prisma CLI reads `DATABASE_URL` from [`prisma.config.ts`](prisma.config.ts).
 > Email: `admin@example.com` — Password: `Admin@123` (matches [`prisma/seed.ts`](prisma/seed.ts))  
 > Use **Authorize** in Swagger for admin-only product routes. Replace or remove in production.
 
-The schema is defined in [`prisma/schema.prisma`](prisma/schema.prisma). The database is **SQLite**; the app uses **Prisma ORM 7** with the better-sqlite3 adapter ([`src/prisma/prisma.service.ts`](src/prisma/prisma.service.ts)).
+The schema is defined in [`prisma/schema.prisma`](prisma/schema.prisma). The database is **SQLite**; the app uses **Prisma ORM 7** with the better-sqlite3 adapter ([`src/prisma/services/prisma.service.ts`](src/prisma/services/prisma.service.ts)).
 
 ### Database schema (tables)
 
@@ -214,7 +214,7 @@ stateDiagram-v2
 |-----------|-----|------------|----------------------|
 | `PATCH /orders/:id/status` | `ADMIN` JWT | One step forward on the fulfillment chain only | Target must be the **next** status: `PENDING`→`PROCESSING`→`SHIPPED`→`DELIVERED`. **Not allowed:** skip, backward, same status, body `CANCELLED`, or any change when current is `DELIVERED` or `CANCELLED`. |
 | `PATCH /orders/:id/cancel` | Order owner (`USER`) or `ADMIN` | `PENDING` → `CANCELLED` | Only while `PENDING`. Users may cancel **own** orders; admins may cancel any `PENDING` order. |
-| Cron ([`OrderStatusSchedulerService`](src/order/order-status-scheduler.service.ts)) | System | `PENDING` → `PROCESSING` | Scheduled job; same first hop as a manual admin status update. |
+| Cron ([`OrderStatusSchedulerService`](src/order/services/scheduler/order-status-scheduler.service.ts)) | System | `PENDING` → `PROCESSING` | Scheduled job; same first hop as a manual admin status update. |
 
 ### Entity-relationship diagram (ERD)
 
@@ -286,22 +286,56 @@ Use **Authentication** (`POST /auth/sign-up`, `POST /auth/login`) to obtain `acc
 ## Project structure
 
 ```
-src/
-├── app.module.ts          # Root module (schedule, throttler, feature modules)
-├── app.controller.ts      # GET / health (skip throttle)
-├── main.ts                # Bootstrap, Swagger, global ValidationPipe
-├── auth/                  # Sign-up, login, JWT strategy, guards, roles
-├── user/                  # User service and DTOs
-├── product/               # Product catalog API
-├── order/                 # Orders, DTOs, status scheduler (cron)
-├── prisma/                # PrismaService (SQLite adapter)
-├── common/                # Pagination helpers and shared DTOs
-└── config/                # Throttle options for ThrottlerModule
-prisma/
-├── schema.prisma
-├── migrations/
-└── seed.ts
+.
+├── prisma.config.ts              # Prisma CLI config (e.g. DATABASE_URL)
+├── src/
+│   ├── main.ts                   # Bootstrap, Swagger, global ValidationPipe
+│   ├── app.module.ts             # Root module (schedule, throttler, feature modules)
+│   ├── app.controller.ts         # GET / health (skip throttle)
+│   ├── app.service.ts
+│   ├── config/
+│   │   └── throttle-options.ts   # ThrottlerModule options from env
+│   ├── common/                   # Pagination helpers and shared DTOs
+│   │   ├── dto/
+│   │   ├── build-pagination-meta.ts
+│   │   └── resolve-pagination-params.ts
+│   ├── prisma/
+│   │   ├── prisma.module.ts
+│   │   └── services/
+│   │       └── prisma.service.ts # Prisma Client + SQLite (better-sqlite3) adapter
+│   ├── auth/
+│   │   ├── auth.module.ts
+│   │   ├── controllers/          # HTTP: sign-up, login
+│   │   ├── services/auth/
+│   │   ├── dto/
+│   │   ├── guards/               # JWT, roles, admin
+│   │   ├── jwt.strategy.ts
+│   │   ├── jwt-module.factory.ts
+│   │   └── roles.decorator.ts
+│   ├── user/
+│   │   ├── user.module.ts
+│   │   ├── services/user/
+│   │   └── dto/
+│   ├── product/
+│   │   ├── product.module.ts
+│   │   ├── controllers/
+│   │   ├── services/product/
+│   │   └── dto/
+│   └── order/
+│       ├── order.module.ts
+│       ├── order-status-transitions.ts
+│       ├── controllers/
+│       ├── services/
+│       │   ├── order/
+│       │   └── scheduler/        # Cron: PENDING → PROCESSING
+│       └── dto/
+└── prisma/
+    ├── schema.prisma
+    ├── migrations/
+    └── seed.ts
 ```
+
+Unit tests live next to sources as `*.spec.ts` under `src/` (see [Testing](#testing)).
 
 ## Architecture
 

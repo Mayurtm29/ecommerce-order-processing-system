@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UserRole, type User } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/services/prisma.service';
 
 /** User row without sensitive hash fields for API responses. */
 export type UserPublic = Omit<User, 'passwordHash'>;

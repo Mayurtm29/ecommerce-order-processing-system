@@ -5,14 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
-import type { JwtValidatedUser } from '../auth/jwt.strategy';
-import { buildPaginationMeta } from '../common/build-pagination-meta';
-import type { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
-import { resolvePaginationParams } from '../common/resolve-pagination-params';
-import { PrismaService } from '../prisma/prisma.service';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import type { ListOrdersQueryDto } from './dto/list-orders-query.dto';
-import { assertValidAdminStatusTransition } from './order-status-transitions';
+import type { JwtValidatedUser } from '../../../auth/jwt.strategy';
+import { buildPaginationMeta } from '../../../common/build-pagination-meta';
+import type { PaginationMetaDto } from '../../../common/dto/pagination-meta.dto';
+import { resolvePaginationParams } from '../../../common/resolve-pagination-params';
+import { PrismaService } from '../../../prisma/services/prisma.service';
+import type { CreateOrderDto } from '../../dto/create-order.dto';
+import type { ListOrdersQueryDto } from '../../dto/list-orders-query.dto';
+import { assertValidAdminStatusTransition } from '../../order-status-transitions';
 
 const orderIncludeWithItemsAndProduct = {
   items: { include: { product: true } },

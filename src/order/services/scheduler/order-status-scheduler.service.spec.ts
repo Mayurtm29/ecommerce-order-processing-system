@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/services/prisma.service';
 import { OrderStatusSchedulerService } from './order-status-scheduler.service';
 
 describe('OrderStatusSchedulerService', () => {

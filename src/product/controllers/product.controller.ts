@@ -26,13 +26,13 @@ import {
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
-import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { ProductService } from './product.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../auth/guards/admin.guard';
+import { PaginationMetaDto } from '../../common/dto/pagination-meta.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { CreateProductDto } from '../dto/create-product.dto';
+import { UpdateProductDto } from '../dto/update-product.dto';
+import { ProductService } from '../services/product/product.service';
 
 /**
  * Product catalog: JWT for all routes; POST/PATCH/DELETE use {@link AdminGuard}.

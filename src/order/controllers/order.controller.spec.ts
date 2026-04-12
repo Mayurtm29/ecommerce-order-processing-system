@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus, UserRole } from '@prisma/client';
-import type { JwtValidatedUser } from '../auth/jwt.strategy';
+import type { JwtValidatedUser } from '../../auth/jwt.strategy';
 import { OrderController } from './order.controller';
-import { OrderService } from './order.service';
+import { OrderService } from '../services/order/order.service';
 
 const mockActor: JwtValidatedUser = {
   userId: 7,

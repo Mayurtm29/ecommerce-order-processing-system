@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import type { UserPublic } from '../user.service';
+import type { UserPublic } from '../services/user/user.service';
 
 /**
  * Safe user projection for API responses (no password hash).

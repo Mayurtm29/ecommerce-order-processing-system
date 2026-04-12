@@ -5,13 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, type Product } from '@prisma/client';
-import { buildPaginationMeta } from '../common/build-pagination-meta';
-import type { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
-import type { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { resolvePaginationParams } from '../common/resolve-pagination-params';
-import { PrismaService } from '../prisma/prisma.service';
-import type { CreateProductDto } from './dto/create-product.dto';
-import type { UpdateProductDto } from './dto/update-product.dto';
+import { buildPaginationMeta } from '../../../common/build-pagination-meta';
+import type { PaginationMetaDto } from '../../../common/dto/pagination-meta.dto';
+import type { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
+import { resolvePaginationParams } from '../../../common/resolve-pagination-params';
+import { PrismaService } from '../../../prisma/services/prisma.service';
+import type { CreateProductDto } from '../../dto/create-product.dto';
+import type { UpdateProductDto } from '../../dto/update-product.dto';
 
 /**
  * Catalog CRUD and authenticated reads.
